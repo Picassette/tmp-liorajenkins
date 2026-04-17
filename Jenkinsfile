@@ -39,7 +39,7 @@ pipeline {
 					sh '''
 						echo "Building image : $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG"
 						docker build -t $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG .
-						echo "Image builded"
+						echo "Image builded !"
 					'''
 				}
 			}
