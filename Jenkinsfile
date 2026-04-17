@@ -4,7 +4,7 @@ pipeline {
 	
 	// We delare the env here
 	environment {
-		// Note : DOCKER_NAME is also set as credential
+		// Note : DOCKER_USERNAME is also set as credential
 		DOCKER_IMAGE = "examjenkins"
 		DOCKER_TAG = "v.${BUILD_NUMBER}.0"
 		DOCKER_TEST_CONTAINER_NAME = ""
@@ -30,15 +30,15 @@ pipeline {
 		stage('run : Docker Build') {
 			// We get our Docker Name (Scopped bc of good practice)
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 			}
 			steps {
 				script {
 					// Script run for Docker Image Build
 					
 					sh '''
-						echo "Building image : $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG"
-						docker build -t $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG .
+						echo "Building image : $DOCKER_USERNAME/$DOCKER_IMAGE:$DOCKER_TAG"
+						docker build -t $DOCKER_USERNAME/$DOCKER_IMAGE:$DOCKER_TAG .
 						echo "Image builded !"
 					'''
 				}
@@ -47,7 +47,7 @@ pipeline {
 		// Running our Docker image and check if it run correctly
 		stage('run : run & test Docker Image') {
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 			}
 			steps {
 				script {
@@ -86,14 +86,14 @@ pipeline {
 		// We push the Docker Image
 		stage('run : Pushing Docker Image') {
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 				DOCKER_PASS = credentials("DOCKER_PASS")
 			}
 			steps {
 				script {
 					sh '''
-						"$DOCKER_PASS" | docker login -u $DOCKER_NAME --password-stdin
-						docker push $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG
+						"$DOCKER_PASS" | docker login -u $DOCKER_USERNAME --password-stdin
+						docker push $DOCKER_USERNAME/$DOCKER_IMAGE:$DOCKER_TAG
 					'''
 				}
 			}
@@ -101,7 +101,7 @@ pipeline {
 		// We deploy on Dev env
 		stage('deployment : Dev') {
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 				KUBECONFIG = credentials("config")
 			}
 			steps {
@@ -121,7 +121,7 @@ pipeline {
 		// We deploy on QA env
 		stage('deployment : QA') {
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 				KUBECONFIG = credentials("config")
 			}
 			steps {
@@ -141,7 +141,7 @@ pipeline {
 		// We deploy on Staging env
 		stage('deployment : Staging') {
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 				KUBECONFIG = credentials("config")
 			}
 			steps {
@@ -167,7 +167,7 @@ pipeline {
 			}
 
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 				KUBECONFIG = credentials("config")
 			}
 			steps {
@@ -187,7 +187,7 @@ pipeline {
 		// We remove the temporary build Docker Image
 		stage('Cleanup') {
 			environment {
-				DOCKER_NAME = credentials("DOCKER_NAME")
+				DOCKER_USERNAME = credentials("DOCKER_USERNAME")
 			}
 			steps {
 				script {
@@ -201,7 +201,7 @@ pipeline {
 						docker rm -f $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
 
 						# We delete the test image
-						docker rmi -f "$DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG" || true
+						docker rmi -f "$DOCKER_USERNAME/$DOCKER_IMAGE:$DOCKER_TAG" || true
 						
 						echo "Cleanup completed"
 					'''
