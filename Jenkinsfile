@@ -22,7 +22,7 @@ pipeline {
 					
 					env.DOCKER_TEST_CONTAINER_NAME = "jenkins_test_${randomSuffix}"
 
-					echo "Generated Docker Image Test Container name : env.DOCKER_TEST_CONTAINER_NAME"
+					echo "Generated Docker Image Test Container name : ${env.DOCKER_TEST_CONTAINER_NAME}"
 				}
 			}
 		}
@@ -49,36 +49,38 @@ pipeline {
 			environment {
 				DOCKER_NAME = credentials("DOCKER_NAME")
 			}
-			script {
-				sh '''
-					echo "Starting test container: $DOCKER_TEST_CONTAINER_NAME"
-					
-					docker run -d -p 8080:80 --name $DOCKER_TEST_CONTAINER_NAME $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG
-					
-					echo "Waiting for service to be ready"
-					
-					# Retry 10 time max , with a 2s wait between each retry
-					for i in {1..10}; do
-						echo "Attempt $i/10"
+			steps {
+				script {
+					sh '''
+						echo "Starting test container: $DOCKER_TEST_CONTAINER_NAME"
 						
-						HTTP_CODE=$(curl -s -f -o /dev/null -w "%{http_code}" http://localhost:8080)
+						docker run -d -p 8080:80 --name $DOCKER_TEST_CONTAINER_NAME $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG
 						
-						if [ "$HTTP_CODE" == "200" ]; then
-							echo "Service responded correctly"
-							exit 0
-						else
-							echo "Attempt $i failed with code: $HTTP_CODE"
-							sleep 2
-						fi
-					done
-					
-					echo "Failure, service did not respond correctly after 10 attempts."
+						echo "Waiting for service to be ready"
+						
+						# Retry 10 time max , with a 2s wait between each retry
+						for i in {1..10}; do
+							echo "Attempt $i/10"
+							
+							HTTP_CODE=$(curl -s -f -o /dev/null -w "%{http_code}" http://localhost:8080)
+							
+							if [ "$HTTP_CODE" == "200" ]; then
+								echo "Service responded correctly"
+								exit 0
+							else
+								echo "Attempt $i failed with code: $HTTP_CODE"
+								sleep 2
+							fi
+						done
+						
+						echo "Failure, service did not respond correctly after 10 attempts."
 
-					# Cleanup
-					docker stop $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
-					docker rm -f $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
-					exit 1
-				'''
+						# Cleanup
+						docker stop $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
+						docker rm -f $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
+						exit 1
+					'''
+				}
 			}
 		}
 		// We push the Docker Image
@@ -87,11 +89,13 @@ pipeline {
 				DOCKER_NAME = credentials("DOCKER_NAME")
 				DOCKER_PASS = credentials("DOCKER_PASS")
 			}
-			script {
-				sh '''
-					"$DOCKER_PASS" | docker login -u $DOCKER_NAME --password-stdin
-       				docker push $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG
-				'''
+			steps {
+				script {
+					sh '''
+						"$DOCKER_PASS" | docker login -u $DOCKER_NAME --password-stdin
+						docker push $DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG
+					'''
+				}
 			}
 		}
 		// We deploy on Dev env
@@ -185,21 +189,23 @@ pipeline {
 			environment {
 				DOCKER_NAME = credentials("DOCKER_NAME")
 			}
-			script {
-				sh '''
-					echo "Cleaning up testing artifacts"
-					
-					# We stop the container if it run
-					docker stop $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
+			steps {
+				script {
+					sh '''
+						echo "Cleaning up testing artifacts"
+						
+						# We stop the container if it run
+						docker stop $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
 
-					# We remove the container if it exist
-					docker rm -f $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
+						# We remove the container if it exist
+						docker rm -f $DOCKER_TEST_CONTAINER_NAME 2>/dev/null || true
 
-					# We delete the test image
-					docker rmi -f "$DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG" || true
-					
-					echo "Cleanup completed"
-				'''
+						# We delete the test image
+						docker rmi -f "$DOCKER_NAME/$DOCKER_IMAGE:$DOCKER_TAG" || true
+						
+						echo "Cleanup completed"
+					'''
+				}
 			}
 		}
 	}
