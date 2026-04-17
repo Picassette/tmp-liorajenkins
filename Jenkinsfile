@@ -1,4 +1,7 @@
 pipeline {
+	// Agent selection
+	agent any // No need for a particular agent
+	
 	// We delare the env here
 	environment {
 		// Note : DOCKER_NAME is also set as credential
@@ -6,10 +9,6 @@ pipeline {
 		DOCKER_TAG = "v.${BUILD_NUMBER}.0"
 		DOCKER_TEST_CONTAINER_NAME = ""
 	}
-
-
-	// Agent selection
-	agent any // No need for a particular agent
 	
 	// Declare stages
 	stages {
